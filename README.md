@@ -22,7 +22,7 @@ The image below visualises the topology.
 
 ## Usage
 
-Make sure that you have VirtualBox (used as provider) and Vagrant installed on your machine.
+Make sure that you have VirtualBox (used as provider), Vagrant and Ansible installed on your machine.
 Afterwards you can easily bring up the topology by executing the `vagrant up` command.
 Note that all commands should be executed in the same directory as the VagrantFile.
 
