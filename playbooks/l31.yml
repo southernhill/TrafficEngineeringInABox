@@ -1,0 +1,65 @@
+---
+- hosts: l3-1
+  become: yes
+  become_user: root
+  become_method: sudo
+  tasks:
+      - name: Provisioning physical and logical ports
+        nclu:
+          commands:
+            - add hostname L3-1
+            - add loopback lo ip address 192.0.2.3/32
+            - add loopback lo ipv6 address 2001:db8::3/128
+            - add interface swp1 post-up echo 1 > /proc/sys/net/ipv4/conf/swp1/proxy_arp
+            - add interface swp2 post-up echo 1 > /proc/sys/net/ipv4/conf/swp2/proxy_arp
+            - add interface swp1 ip address 192.0.2.25/30
+            - add interface swp1 ipv6 address 2001:db8:4::1/64
+            - add interface swp1 alias "UPLINK-L3-2-SWP1"
+            - add interface swp1 mtu 9018
+            - add interface swp2 ip address 192.0.2.30/30
+            - add interface swp2 ipv6 address 2001:db8:2::2/64
+            - add interface swp2 alias "UPLINK-L2-SWP2"
+            - add interface swp2 mtu 9018
+          commit: true
+      - name: Enable BGP
+        nclu:
+          commands:
+            - add bgp autonomous-system 64499
+            - add bgp router-id 192.0.2.3
+          commit: true
+      - name: Configure BGP
+        nclu:
+          commands:
+            - add bgp neighbor L2 peer-group
+            - add bgp neighbor L2 password VerySecure
+            - add bgp neighbor L2 bfd
+            - add bgp neighbor L2 remote-as 64497
+            - add bgp neighbor L2-V6 peer-group
+            - add bgp neighbor L2-V6 password VerySecure
+            - add bgp neighbor L2-V6 bfd
+            - add bgp neighbor L2-V6 remote-as 64497
+            - add bgp neighbor L3 peer-group
+            - add bgp neighbor L3 password VerySecure
+            - add bgp neighbor L3 bfd
+            - add bgp neighbor L3 remote-as 64499
+            - add bgp neighbor L3-V6 peer-group
+            - add bgp neighbor L3-V6 password VerySecure
+            - add bgp neighbor L3-V6 bfd
+            - add bgp neighbor L3-V6 remote-as 64499
+            - add bgp neighbor 192.0.2.29 peer-group L2
+            - add bgp neighbor 2001:db8:2::1 peer-group L2-V6
+            - add bgp neighbor 192.0.2.26 peer-group L3
+            - add bgp neighbor 2001:db8:4::2 peer-group L3-V6
+            - add bgp ipv6 unicast neighbor L2-V6 activate
+            - add bgp ipv6 unicast neighbor L3-V6 activate
+            - add bgp ipv4 unicast neighbor L2 activate
+            - add bgp ipv4 unicast neighbor L3 activate
+            - del bgp ipv4 unicast neighbor 2001:db8:2::1 activate
+            - del bgp ipv4 unicast neighbor 2001:db8:4::2 activate
+            - add bgp l2vpn evpn neighbor L2 activate
+            - add bgp l2vpn evpn neighbor L3 activate
+            - add bgp ipv4 unicast redistribute connected
+            - add bgp ipv6 unicast redistribute connected
+            - add bgp ipv4 unicast redistribute static
+            - add bgp ipv6 unicast redistribute static
+          commit: true

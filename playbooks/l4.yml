@@ -1,0 +1,77 @@
+---
+- hosts: l4
+  become: yes
+  become_user: root
+  become_method: sudo
+  tasks:
+      - name: Provisioning physical and logical ports
+        nclu:
+          commands:
+            - add hostname L4
+            - add loopback lo ip address 192.0.2.6/32
+            - add loopback lo ipv6 address 2001:db8::6/128
+            - add interface swp1 post-up echo 1 > /proc/sys/net/ipv4/conf/swp1/proxy_arp
+            - add interface swp2 post-up echo 1 > /proc/sys/net/ipv4/conf/swp2/proxy_arp
+            - add interface swp1 ip address 192.0.2.18/30
+            - add interface swp1 ipv6 address 2001:db8:5::2/64
+            - add interface swp1 alias "UPLINK-L1-2-SWP2"
+            - add interface swp1 mtu 9018
+            - add interface swp2 ip address 192.0.2.22/30
+            - add interface swp2 ipv6 address 2001:db8:6::2/64
+            - add interface swp2 alias "UPLINK-L3-2-SWP2"
+            - add interface swp2 mtu 9018
+            - add vlan 10 alias VLAN-EXAMPLE
+            - add interface swp4 bridge access 10
+            - add interface swp3 ip address 192.0.2.37/30
+            - add interface swp3 ipv6 address 2001:db8:8::1/64
+          commit: true
+      - name: Enable BGP
+        nclu:
+          commands:
+            - add bgp autonomous-system 64501
+            - add bgp router-id 192.0.2.6
+          commit: true
+      - name: Configure BGP
+        nclu:
+          commands:
+            - add bgp neighbor L1 peer-group
+            - add bgp neighbor L1 password VerySecure
+            - add bgp neighbor L1 bfd
+            - add bgp neighbor L1 remote-as 64498
+            - add bgp neighbor L1-V6 peer-group
+            - add bgp neighbor L1-V6 password VerySecure
+            - add bgp neighbor L1-V6 bfd
+            - add bgp neighbor L1-V6 remote-as 64498
+            - add bgp neighbor L3 peer-group
+            - add bgp neighbor L3 password VerySecure
+            - add bgp neighbor L3 bfd
+            - add bgp neighbor L3 remote-as 64499
+            - add bgp neighbor L3-V6 peer-group
+            - add bgp neighbor L3-V6 password VerySecure
+            - add bgp neighbor L3-V6 bfd
+            - add bgp neighbor L3-V6 remote-as 64499
+            - add bgp neighbor 192.0.2.17 peer-group L1
+            - add bgp neighbor 2001:db8:5::1 peer-group L1-V6
+            - add bgp neighbor 192.0.2.21 peer-group L3
+            - add bgp neighbor 2001:db8:6::1 peer-group L3-V6
+            - add bgp ipv6 unicast neighbor L1-V6 activate
+            - add bgp ipv6 unicast neighbor L3-V6 activate
+            - add bgp ipv4 unicast neighbor L1 activate
+            - add bgp ipv4 unicast neighbor L3 activate
+            - del bgp ipv4 unicast neighbor 2001:db8:5::1 activate
+            - del bgp ipv4 unicast neighbor 2001:db8:6::1 activate
+            - add bgp l2vpn evpn neighbor L1 activate
+            - add bgp l2vpn evpn neighbor L3 activate
+            - add bgp ipv4 unicast redistribute connected
+            - add bgp ipv6 unicast redistribute connected
+            - add bgp ipv4 unicast redistribute static
+            - add bgp ipv6 unicast redistribute static
+            - add bgp l2vpn evpn advertise-all-vni
+          commit: true
+      - name: Configure VNI10
+        nclu:
+          commands:
+            - add vxlan vxlan10 vxlan id 10
+            - add vxlan vxlan10 vxlan local-tunnelip 192.0.2.6
+            - add vxlan vxlan10 bridge access 10
+          commit: true
